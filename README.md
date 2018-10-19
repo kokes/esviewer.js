@@ -1,6 +1,8 @@
 # esviewer.js
 
-**tl;dr: This lets you search an Elasticsearch index without having to install anything but Elasticsearch. You just point your browser to an HTML file and off you go. It's not secure, not one bit.**
+**tl;dr: This lets you search an Elasticsearch index without having to install anything but Elasticsearch. You just point your browser to an HTML file and off you go. It's not secure, not one bit. It looks like this:**
+
+![screenshot](https://raw.githubusercontent.com/kokes/esviewer.js/master/screenshot.png)
 
 This tool addresses a frequent issue I have. I usually have a dataset in Elasticsearch and I want to search through it. No Kibana, no nothing. I would usually just read the JSON of `http://localhost:9200/index/_search?q=my_query`, but that's not a terribly friendly interface. Also, I hate dependencies, so I came up with this.
 
@@ -50,6 +52,4 @@ const pglen = 5; // set number of items per page
 const render_keys = ['restrict', 'to', 'just', 'some', 'keys']
 ```
 
-As always, it comes with no guarantees, pull requests and issue submissions are welcome. I'll leave you with a screenshot:
-
-![screenshot](https://raw.githubusercontent.com/kokes/esviewer.js/master/screenshot.png)
+As always, it comes with no guarantees, pull requests and issue submissions are welcome.
