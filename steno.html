@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<title>esviewer.js</title>
+<style>
+
+body {
+  font: 1em Arial, sans-serif;
+  background: #ddd;
+}
+div#cnt {
+    max-width: 560px;
+    padding-top: 10%;
+    margin: 1em auto;
+
+    border: 1px solid #ccc;
+    padding: 1.5em;
+    background-color: white;
+    box-shadow: 0 0 10px #ccc;
+}
+
+div#cnt form {
+    margin-bottom: 1em;
+}
+div#cnt form input[type=text] {
+    font-size: 1.5em;
+    display: block;
+    margin: 0 auto;
+    width: 70%;
+}
+div#cnt form input[type=submit] {
+    display: block;
+    margin: .3em auto;
+}
+
+div.document {
+    margin-bottom: 1em;
+    border: 1px solid #ddd;
+    padding: .5em;
+}
+</style>
+
+<script type='text/javascript'>
+const endpoint = 'http://localhost:9200/_search'; // set your Elasticsearch endpoint
+const pglen = 25; // set number of items per page
+const render_keys = []; // ['restrict', 'to', 'just', 'some', 'keys']
+
+const d = document;
+
+window.onhashchange = function() {
+    var tg = d.getElementById('res');
+    while (tg.firstChild)
+        tg.removeChild(tg.firstChild);
+
+    var hs = window.location.hash.slice(1); // cut out '#'
+    var enc = hs.split('/')[0];
+    var offset = hs.includes('/') ? hs.split('/').slice(-1) : 0;
+
+    let url = `${endpoint}?q=${enc}&size=${pglen}&from=${offset}`;
+
+    fetch(url).then(r => {
+        if (r.status != 200) {
+            console.error(`Failed to load documents: ${r.status}`);
+            return;
+        }
+        r.json().then(dt => render(dt));
+    })
+};
+
+window.onload = function () {
+    fetch(endpoint + '?size=0').then(r => {
+        if (r.status != 200) {
+            console.error(`Failed to load index info: ${r.status}`);
+            return;
+        }
+        r.json().then(dt => {
+            var body = d.getElementsByTagName('body')[0];
+            var sp = d.createElement('span');
+            sp.textContent = `Searching ${dt.hits.total} documents`;
+
+            body.insertBefore(sp, body.firstChild)
+        });
+    });
+    
+    var f = d.getElementById('hlf');
+    f.addEventListener('submit', function(e) {
+        // change the URL
+        e.preventDefault();
+        var q = d.getElementById('hl').value;
+        var enc = encodeURIComponent(q);
+        window.location.hash = enc;
+    });
+
+    var hs = window.location.hash;
+    // if the page is loaded with a hash already in place (history, link clicked etc.)
+    if (hs.length > 0) {
+        d.getElementById('hl').value = decodeURIComponent(hs.slice(1).split('/')[0]);
+
+        // "click"
+        var ev = new Event('hashchange');
+        window.dispatchEvent(ev);
+    }
+};
+
+function render(dt) {
+    var tg = d.getElementById('res');
+    var ttl = d.createElement('span');
+    var hits = dt.hits.total;
+    ttl.textContent = `Found ${hits} documents`;
+    tg.appendChild(ttl);
+    let restrict = new Set(render_keys);
+
+    for (var j in dt.hits.hits) {
+        var dd = dt.hits.hits[j]._source;
+        // console.log(dd); // debugging
+        
+        var el = d.createElement('div');
+        el.className = 'document';
+        for (let k of Object.keys(dd)) {
+            if (restrict.size > 0 && !restrict.has(k)) continue;
+
+            let st = d.createElement('strong');
+            st.textContent = k + ': ';
+            let cn = d.createElement('span');
+            cn.textContent = dd[k];
+
+            let dv = d.createElement('div');
+            dv.appendChild(st);
+            dv.appendChild(cn);
+
+            el.appendChild(dv);
+        }
+        
+        tg.appendChild(el);
+    }
+
+    // pagination
+    if (hits <= pglen) return // if all the data fits on a single page, we're done
+    var cof = 0;
+    var hs = window.location.hash;
+    if (hs.includes('/'))
+        cof = parseInt(hs.split('/').slice(-1));
+
+    // render next
+    if (cof > 0) {
+        var a = d.createElement('a');
+        a.textContent = 'previous page'
+        a.setAttribute('href', hs.split('/')[0] + '/' + ((cof-pglen) < 0 ? 0 : cof-pglen))
+        tg.appendChild(a);
+    }
+
+    // render previous
+    if (cof + pglen < hits) {
+        var a = d.createElement('a');
+        a.textContent = 'next page'
+        a.setAttribute('href', hs.split('/')[0] + '/' + (cof + pglen))
+        a.style.float = 'right';
+        tg.appendChild(a);
+    }
+
+}
+</script>
+
+</head>
+<body>
+
+<div id='cnt'>
+    <form id='hlf'>
+        <input type='text' name='q' id='hl' placeholder='search query' />
+        <input type='submit' value='Search' />
+    </form>
+
+    <div id='res'></div>
+
+</div>
+
+</body>
+</html>
